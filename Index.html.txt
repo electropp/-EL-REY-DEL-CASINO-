@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <title>El Rey del Juego Online</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+    <style>
+        :root { --gold: #fcc200; --dark-bg: #050505; --royal-red: #8b0000; --card-bg: #121212; }
+        body { background: var(--dark-bg); color: white; font-family: 'Segoe UI', sans-serif; margin: 0; overflow-x: hidden; }
+        
+        /* Pantalla de Carga */
+        #loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--dark-bg); z-index: 10000; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: 0.8s; }
+        .crown-loader { font-size: 5rem; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); filter: drop-shadow(0 0 5px var(--gold)); } 50% { transform: scale(1.1); filter: drop-shadow(0 0 20px var(--gold)); } 100% { transform: scale(1); filter: drop-shadow(0 0 5px var(--gold)); } }
+        .fade-out { opacity: 0; visibility: hidden; }
+
+        /* Estructura General */
+        .header { background: #000; padding: 15px; border-bottom: 2px solid var(--gold); position: sticky; top: 0; z-index: 100; }
+        .logo { font-size: 1.8rem; color: var(--gold); font-weight: bold; cursor: pointer; }
+        .view { display: none; padding: 20px; animation: fadeIn 0.5s; }
+        .active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Estilos de Componentes */
+        .game-container { background: #111; border: 2px solid var(--gold); border-radius: 15px; padding: 20px; max-width: 500px; margin: auto; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        .btn-play { background: var(--gold); color: black; border: none; padding: 15px; font-weight: bold; border-radius: 10px; cursor: pointer; width: 100%; margin: 10px 0; font-size: 1rem; }
+        .back-btn { display: block; margin-bottom: 15px; color: var(--gold); cursor: pointer; font-weight: bold; }
+        
+        /* Rangos */
+        .rank-bronce { color: #cd7f32; } .rank-plata { color: #c0c0c0; } .rank-oro { color: var(--gold); text-shadow: 0 0 10px var(--gold); } .rank-diamante { color: #b9f2ff; animation: shine 2s infinite; }
+        @keyframes shine { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.5); } }
+
+        /* Slots y Juegos */
+        .reel-container { display: flex; justify-content: center; gap: 10px; margin: 20px 0; }
+        .reel { background: white; color: black; width: 80px; height: 80px; line-height: 80px; font-size: 3rem; border-radius: 10px; border: 3px solid #333; }
+        
+        /* Chat */
+        #chat-container { position: fixed; bottom: 10px; right: 10px; width: 220px; background: rgba(0,0,0,0.9); border: 1px solid var(--gold); border-radius: 10px; font-size: 0.75rem; z-index: 99; }
+        #chat-messages { height: 100px; overflow: hidden; padding: 10px; display: flex; flex-direction: column; justify-content: flex-end; }
+    </style>
+</head>
+<body>
+
+    <div id="loader">
+        <div class="crown-loader">👑</div>
+        <h2 style="color: var(--gold); letter-spacing: 3px;">EL REY DEL JUEGO</h2>
+        <div style="width: 200px; height: 4px; background: #222; margin-top: 20px; overflow: hidden;">
+            <div id="load-bar" style="width: 0%; height: 100%; background: var(--gold);"></div>
+        </div>
+    </div>
+
+    <div class="header">
+        <div class="logo" ondblclick="showView('admin-panel')">👑 EL REY</div>
+        <div style="font-size: 0.9rem; margin-top: 5px;">
+            Saldo: <span id="global-balance" style="color: #00ff00; font-weight: bold;">$0</span> | 
+            <span id="rango-display" class="rank-bronce">BRONCE</span>
+        </div>
+    </div>
+
+    <div style="background: #000; padding: 10px; border-bottom: 1px solid #444;">
+        <small style="color: #ff4500;">MEGA JACKPOT</small>
+        <div id="jackpot-amount" style="font-size: 1.8rem; color: #ff0000; font-family: monospace; font-weight: bold; text-shadow: 0 0 10px red;">$5,000.00</div>
+    </div>
+
+    <div id="lobby" class="view active">
+        <div class="game-container">
+            <h3>BIENVENIDO A TU TRONO</h3>
+            <button class="btn-play" onclick="showView('slots')">🎰 TRAGAMONEDAS</button>
+            <button class="btn-play" onclick="showView('blackjack')">🃏 BLACKJACK 21</button>
+            <button class="btn-play" style="background: #27ae60; color: white;" onclick="showView('bank')">💰 CARGAR SALDO</button>
+            <button class="btn-play" style="background: #0088cc; color: white;" onclick="window.open('https://t.me/TU_CANAL')">📢 CANAL VIP TELEGRAM</button>
+        </div>
+    </div>
+
+    <div id="slots" class="view">
+        <span class="back-btn" onclick="showView('lobby')">← VOLVER</span>
+        <div class="game-container">
+            <h2>FRUTAS REALES</h2>
+            <div class="reel-container">
+                <div id="r1" class="reel">🍒</div>
+                <div id="r2" class="reel">🍒</div>
+                <div id="r3" class="reel">🍒</div>
+            </div>
+            <button class="btn-play" onclick="playSlots()">GIRAR ($10)</button>
+        </div>
+    </div>
+
+    <div id="blackjack" class="view">
+        <span class="back-btn" onclick="showView('lobby')">← VOLVER</span>
+        <div class="game-container" style="background: #076324;">
+            <h3>BLACKJACK 21</h3>
+            <div id="dealer-cards"></div>
+            <div style="margin: 20px 0; border-top: 1px solid white;"></div>
+            <div id="player-cards"></div>
+            <p id="bj-msg"></p>
+            <button id="btn-deal" class="btn-play" onclick="startBJ()">APOSTAR $100</button>
+            <div id="bj-controls" style="display:none; gap:10px;">
+                <button class="btn-play" style="background:#e67e22" onclick="hit()">PEDIR</button>
+                <button class="btn-play" style="background:#2980b9" onclick="stay()">PLANTARSE</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="bank" class="view">
+        <span class="back-btn" onclick="showView('lobby')">← VOLVER</span>
+        <div class="game-container">
+            <h3 style="color: var(--gold);">DEPOSITAR</h3>
+            <p>Transfiere y envía captura por Telegram:</p>
+            <div style="background:#222; padding:15px; border-radius:10px; font-family:monospace; text-align:left; border: 1px dashed var(--gold);">
+                TARJETA: XXXX XXXX XXXX XXXX<br>
+                BANCO: [TU BANCO]<br>
+                NOMBRE: [TU NOMBRE]
+            </div>
+            <button class="btn-play" style="background:#0088cc; color:white;" onclick="window.open('https://t.me/TU_USUARIO')">✈️ ENVIAR COMPROBANTE</button>
+        </div>
+    </div>
+
+    <div id="admin-panel" class="view">
+        <span class="back-btn" onclick="showView('lobby')">← SALIR MODO DIOS</span>
+        <div class="game-container" style="border-color: red;">
+            <h2 style="color:red;">SALA DE CONTROL</h2>
+            <input type="number" id="admin-amount" placeholder="Monto" style="width:80%; padding:10px; margin-bottom:10px;">
+            <button class="btn-play" style="background:green; color:white;" onclick="adminAddFunds()">INYECTAR SALDO + BONO</button>
+            <hr>
+            <div id="admin-player-list" style="text-align:left; font-size:0.8rem;"></div>
+        </div>
+    </div>
+
+    <div id="chat-container">
+        <div style="background:var(--gold); color:black; font-weight:bold; padding:2px;">SALA VIP</div>
+        <div id="chat-messages"></div>
+    </div>
+
+    <script>
+        // CONFIGURACIÓN FIREBASE (REEMPLAZA CON TUS DATOS)
+        const firebaseConfig = {
+            apiKey: "TU_API_KEY",
+            databaseURL: "TU_DATABASE_URL",
+            projectId: "TU_PROJECT_ID",
+            appId: "TU_APP_ID"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // Variables de Juego
+        let saldo = 0;
+        let jackpot = 5000;
+        let miUsuario = localStorage.getItem('casino_user') || "Rey_" + Math.floor(Math.random()*9999);
+        localStorage.setItem('casino_user', miUsuario);
+
+        // --- CONEXIÓN FIREBASE ---
+        db.ref('usuarios/' + miUsuario).on('value', (snap) => {
+            const data = snap.val();
+            if(data) {
+                if(data.saldo > saldo && (data.saldo - saldo) >= 150) { mostrarBono(data.saldo - saldo); }
+                saldo = data.saldo;
+                updateUI();
+            } else {
+                db.ref('usuarios/' + miUsuario).set({ saldo: 1000, conteo: 0 });
+            }
+            setTimeout(() => document.getElementById('loader').classList.add('fade-out'), 1000);
+        });
+
+        db.ref('jackpot').on('value', (snap) => {
+            if(snap.val()) jackpot = snap.val();
+            document.getElementById('jackpot-amount').innerText = "$" + jackpot.toLocaleString();
+        });
+
+        // --- FUNCIONES CORE ---
+        function updateUI() {
+            document.getElementById('global-balance').innerText = saldo.toLocaleString();
+            const r = obtenerRango(saldo);
+            document.getElementById('rango-display').innerText = r.nombre;
+            document.getElementById('rango-display').className = r.clase;
+        }
+
+        function obtenerRango(s) {
+            if (s >= 50000) return { nombre: "💎 DIAMANTE", clase: "rank-diamante" };
+            if (s >= 10000) return { nombre: "🥇 ORO", clase: "rank-oro" };
+            if (s >= 2000) return { nombre: "🥈 PLATA", clase: "rank-plata" };
+            return { nombre: "🥉 BRONCE", clase: "rank-bronce" };
+        }
+
+        function showView(id) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        // --- LÓGICA DE ADMIN ---
+        function adminAddFunds() {
+            const monto = parseFloat(document.getElementById('admin-amount').value);
+            db.ref('usuarios/' + miUsuario).once('value').then(s => {
+                let d = s.val();
+                let final = monto;
+                if(d.conteo >= 1) { final += (Math.floor(monto/100) * 50); }
+                db.ref('usuarios/' + miUsuario).update({ saldo: d.saldo + final, conteo: d.conteo + 1 });
+                alert("Fondos cargados con éxito");
+            });
+        }
+
+        function mostrarBono(m) {
+            confetti();
+            alert("👑 ¡CARGA RECIBIDA! +$" + m + " (Incluye Bono)");
+        }
+
+        // --- SLOTS ---
+        const icons = ["🍒", "🔔", "🍋", "💎", "7️⃣"];
+        function playSlots() {
+            if(saldo < 10) return alert("Sin saldo");
+            saldo -= 10;
+            jackpot += 1;
+            db.ref('jackpot').set(jackpot);
+            
+            const res = [icons[Math.floor(Math.random()*5)], icons[Math.floor(Math.random()*5)], icons[Math.floor(Math.random()*5)]];
+            document.getElementById('r1').innerText = res[0];
+            document.getElementById('r2').innerText = res[1];
+            document.getElementById('r3').innerText = res[2];
+
+            if(res[0] === res[1] && res[1] === res[2]) {
+                if(res[0] === "7️⃣") {
+                    let p = jackpot;
+                    saldo += p; jackpot = 5000;
+                    alert("¡MEGA JACKPOT: $" + p + "!");
+                    confetti({particleCount: 200});
+                } else {
+                    saldo += 100; alert("¡Ganaste $100!");
+                }
+            }
+            db.ref('usuarios/' + miUsuario).update({saldo: saldo});
+        }
+
+        // --- CHAT SIMULADO ---
+        const users = ["User99", "Lucky_Girl", "Paisa_22", "Rey_Pro"];
+        const msgs = ["¡Acabo de ganar!", "¿El Jackpot está cerca?", "Amo este casino", "Hoy es mi día"];
+        setInterval(() => {
+            const c = document.getElementById('chat-messages');
+            const div = document.createElement('div');
+            div.innerHTML = `<b>${users[Math.floor(Math.random()*4)]}:</b> ${msgs[Math.floor(Math.random()*4)]}`;
+            c.appendChild(div);
+            if(c.childNodes.length > 4) c.removeChild(c.firstChild);
+        }, 10000);
+
+        // Barra de carga inicial
+        let p = 0; setInterval(() => { if(p < 90) p += 10; document.getElementById('load-bar').style.width = p + "%"; }, 100);
+
+    </script>
+</body>
+</html>
