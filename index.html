@@ -153,11 +153,8 @@
   // FORZAR ENTRADA (Por si falla la conexión)
   function forzarEntrada() {
     document.getElementById('loader').classList.add('hidden');
-    showView('lobby');
-  }
-</script>
-
-        // Variables de Juego
+    showView('lobby');} 
+  // Variables de Juego
         let saldo = 0;
         let jackpot = 5000;
         let miUsuario = localStorage.getItem('casino_user') || "Rey_" + Math.floor(Math.random()*9999);
@@ -259,5 +256,4 @@
         let p = 0; setInterval(() => { if(p < 90) p += 10; document.getElementById('load-bar').style.width = p + "%"; }, 100);
 
     </script>
-</body>
-</html>
+
