@@ -133,21 +133,29 @@
         <div style="background:var(--gold); color:black; font-weight:bold; padding:2px;">SALA VIP</div>
         <div id="chat-messages"></div>
     </div>
+<script>
+  // CONFIGURACIÓN FIREBASE
+  const firebaseConfig = {
+    apiKey: "AIzaSyBSFf8uZmgJusuORDI7yRt",
+    authDomain: "el-rey-del-casino.firebaseapp.com",
+    databaseURL: "https://el-rey-del-casino-default-rtdb.firebaseio.com",
+    projectId: "el-rey-del-casino",
+    storageBucket: "el-rey-del-casino.firebasestorage.app",
+    messagingSenderId: "466942024766",
+    appId: "1:466942024766:web:24a8cedef",
+    measurementId: "G-TR3234ET89"
+  };
 
-    <script>
-        // CONFIGURACIÓN FIREBASE (REEMPLAZA CON TUS DATOS)
-       const firebaseConfig = {
-  apiKey: "AIzaSyBSFf8uZmgJusuORDI7yRt",
-  authDomain: "el-rey-del-casino.firebaseapp.com",
-  databaseURL: "https://el-rey-del-casino-default-rtdb.firebaseio.com",
-  projectId: "el-rey-del-casino",
-  storageBucket: "el-rey-del-casino.firebasestorage.app",
-  messagingSenderId: "466942024766",
-  appId: "1:466942024766:web:24a8cedef",
-  measurementId: "G-TR3234ET89"
-};
- firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
+  // Inicializar Firebase
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  // FORZAR ENTRADA (Por si falla la conexión)
+  function forzarEntrada() {
+    document.getElementById('loader').classList.add('hidden');
+    showView('lobby');
+  }
+</script>
 
         // Variables de Juego
         let saldo = 0;
